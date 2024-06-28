@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# Color ANSI escape codes:
+# https://stackoverflow.com/a/5947802
+WHITE="\033[1;37m"
+RED="\033[0;31m"
+RESET_COLOR="\033[0m"
+
+if [ $# -ne 1 ]; then
+	echo -e "${RED}Invalid argument count${RESET_COLOR}\n"
+
+	echo "Usage:"
+	echo -e "\tgarssh repository_uri"
+
+	exit 1
+fi
+
+GIT_URI=$1
+
+echo -e "${WHITE}Please answer those questions in order to add another remote to your repository with SSH"
+echo -e "Repository URI: ${GIT_URI}${RESET_COLOR}\n"
+
+CWD=`pwd`
+cd ~/.ssh
+KEYS=`ls -1 *.pub`
+cd "${CWD}"
+
+COUNTER=0
+echo "Select the SSH to use with your repository:"
+for entry in $KEYS
+do
+	[[ $entry =~ ^(.+)\.pub$ ]];
+	((COUNTER=COUNTER+1))
+	echo -e "\t$COUNTER. ${BASH_REMATCH[1]}"
+done
+
+read -p "Key #: " KEY_INDEX
+
+if [[ $KEY_INDEX =~ ^[1-9]\d*$ && $KEY_INDEX -le $COUNTER ]]; then
+	((SELECTED_INDEX=$KEY_INDEX-1))
+	ARR=($KEYS)
+	[[ ${ARR[$SELECTED_INDEX]} =~ ^(.+)\.pub$ ]];
+	SELECTED_KEY=${BASH_REMATCH[1]}
+	echo -e "${WHITE}Selected key: ${SELECTED_KEY}${RESET_COLOR}"
+else
+	echo -e "${RED}Invalid key${RESET_COLOR}"
+	exit 2
+fi
+
+echo ""
+
+[[ $GIT_URI =~ /(.+).git$ ]];
+DEFAULT_REMOTE=origin
+read -p "New remote name (default: ${DEFAULT_REMOTE}): " GIT_REMOTE
+
+CURRENT_GIT_USERNAME=`git config user.name`
+read -p "User name for the repository (current: ${CURRENT_GIT_USERNAME}): " GIT_USERNAME
+
+CURRENT_GIT_USEREMAIL=`git config user.email`
+read -p "User email for the repository (current: ${CURRENT_GIT_USEREMAIL}): " GIT_USEREMAIL
+
+echo ""
+echo -e "${WHITE}Adding remote in ..."
+for i in {5..1}
+do
+	echo $i
+	sleep 1
+done
+echo -e "${RESET_COLOR}"
+
+if [[ -z $GIT_REMOTE ]]; then
+	NEW_GIT_REMOTE=$DEFAULT_REMOTE
+else
+	NEW_GIT_REMOTE=$GIT_REMOTE
+fi
+
+CORESSH_COMMAND="ssh -i ~/.ssh/${SELECTED_KEY} -F /dev/null"
+git config --local core.sshCommand "${CORESSH_COMMAND}"
+
+git remote add "${NEW_GIT_REMOTE}" $GIT_URI
+
+if [[ -n $GIT_USERNAME ]]; then
+	echo -e "${WHITE}Setting local user name${RESET_COLOR}"
+	git config --local user.name "${GIT_USERNAME}"
+fi
+
+if [[ -n $GIT_USEREMAIL ]]; then
+	echo -e "${WHITE}Setting local user email${RESET_COLOR}"
+	git config --local user.email "${GIT_USEREMAIL}"
+fi

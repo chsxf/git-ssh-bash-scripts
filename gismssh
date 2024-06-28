@@ -1,0 +1,8 @@
+#!/bin/bash
+
+CURRENT_SSH_COMMAND=`git config core.sshCommand`
+if [[ -z $CURRENT_SSH_COMMAND ]]; then
+    git submodule update --init --recursive
+else
+    git -c core.sshCommand="${CURRENT_SSH_COMMAND}" submodule update --init --recursive
+fi

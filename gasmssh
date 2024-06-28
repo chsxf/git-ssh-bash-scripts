@@ -1,0 +1,94 @@
+#!/bin/bash
+
+# Color ANSI escape codes:
+# https://stackoverflow.com/a/5947802
+WHITE="\033[1;37m"
+RED="\033[0;31m"
+RESET_COLOR="\033[0m"
+
+if [ $# -ne 1 ]; then
+	echo -e "${RED}Invalid argument count${RESET_COLOR}\n"
+
+	echo "Usage:"
+	echo -e "\tgasmssh repository_uri"
+
+	exit 1
+fi
+
+GIT_URI=$1
+
+echo -e "${WHITE}Please answer those questions in order to clone and prepare your submodule with SSH"
+echo -e "Submodule Repository URI: ${GIT_URI}${RESET_COLOR}\n"
+
+CWD=`pwd`
+cd ~/.ssh
+KEYS=`ls -1 *.pub`
+cd "${CWD}"
+
+COUNTER=0
+echo "Select the SSH to use with your submodule:"
+for entry in $KEYS
+do
+	[[ $entry =~ ^(.+)\.pub$ ]];
+	((COUNTER=COUNTER+1))
+	echo -e "\t$COUNTER. ${BASH_REMATCH[1]}"
+done
+
+read -p "Key #: " KEY_INDEX
+
+if [[ $KEY_INDEX =~ ^[1-9]\d*$ && $KEY_INDEX -le $COUNTER ]]; then
+	((SELECTED_INDEX=$KEY_INDEX-1))
+	ARR=($KEYS)
+	[[ ${ARR[$SELECTED_INDEX]} =~ ^(.+)\.pub$ ]];
+	SELECTED_KEY=${BASH_REMATCH[1]}
+	echo -e "${WHITE}Selected key: ${SELECTED_KEY}${RESET_COLOR}"
+else
+	echo -e "${RED}Invalid key${RESET_COLOR}"
+	exit 2
+fi
+
+echo ""
+
+[[ $GIT_URI =~ /(.+).git$ ]];
+DEFAULT_GIT_FOLDER=${BASH_REMATCH[1]}
+read -p "Submodule destination folder (default: ${DEFAULT_GIT_FOLDER}): " GIT_CLONE_FOLDER
+
+GLOBAL_GIT_USERNAME=`git config --global user.name`
+read -p "User name for the repository (global: ${GLOBAL_GIT_USERNAME}): " LOCAL_GIT_USERNAME
+
+GLOBAL_GIT_USEREMAIL=`git config --global user.email`
+read -p "User email for the repository (global: ${GLOBAL_GIT_USEREMAIL}): " LOCAL_GIT_USEREMAIL
+
+echo ""
+echo -e "${WHITE}Cloning in ..."
+for i in {5..1}
+do
+	echo $i
+	sleep 1
+done
+echo -e "${RESET_COLOR}"
+
+if [[ -z $GIT_CLONE_FOLDER ]]; then
+	GIT_FOLDER=$DEFAULT_GIT_FOLDER
+else
+	GIT_FOLDER=$GIT_CLONE_FOLDER
+fi
+
+CORESSH_COMMAND="ssh -i ~/.ssh/${SELECTED_KEY} -F /dev/null"
+git -c core.sshCommand="${CORESSH_COMMAND}" submodule add ${GIT_URI} "${GIT_FOLDER}"
+git -c core.sshCommand="${CORESSH_COMMAND}" submodule update --init --recursive "${GIT_FOLDER}"
+
+echo "" 
+
+cd "${GIT_FOLDER}"
+git config --local core.sshCommand "${CORESSH_COMMAND}"
+
+if [[ -n $LOCAL_GIT_USERNAME ]]; then
+	echo -e "${WHITE}Setting local user name${RESET_COLOR}"
+	git config --local user.name "${LOCAL_GIT_USERNAME}"
+fi
+
+if [[ -n $LOCAL_GIT_USEREMAIL ]]; then
+	echo -e "${WHITE}Setting local user email${RESET_COLOR}"
+	git config --local user.email "${LOCAL_GIT_USEREMAIL}"
+fi
