@@ -1,6 +1,6 @@
 # About This Repository
 
-Have you ever tried to use multiple repositories from the same vendor (GitHub, BitBucket, GitLab, ...) but with different SSH keys. Well, that's not easy.
+Have you ever tried to use multiple repositories from the same vendor (GitHub, BitBucket, GitLab, ...) but with different SSH keys? _Well, that's not easy._
 
 Indeed, your SSH agent will probably only support automatically one key per domain. However, you can assign specific keys to each repository with adequate git configuration settings.
 
