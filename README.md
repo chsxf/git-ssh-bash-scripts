@@ -2,7 +2,7 @@
 
 Have you ever tried to use multiple repositories from the same vendor (GitHub, BitBucket, GitLab, ...) but with different SSH keys? _Well, that's not easy._
 
-Indeed, your SSH agent will probably only support automatically one key per domain. However, you can assign specific keys to each repository with adequate git configuration settings.
+Indeed, your SSH agent will probably only support automatically one key per domain. However, you can assign specific keys to each repository with adequate git configuration settings ([`core.sshCommand`](https://git-scm.com/docs/git-config#Documentation/git-config.txt-coresshCommand)).
 
 This repository contains a collection of shell scripts to facilitate git repositories management with multiple SSH keys.
 
